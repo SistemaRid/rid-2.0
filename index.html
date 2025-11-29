@@ -1570,7 +1570,7 @@
     function updateNotifications() {
       if (!currentUser) return;
       
-      // Filtrar RIDs designados para o usuário atual
+      // Filtrar RIDs designados para o usuário atual (apenas administradores)
       const ridsDesignados = allRids.filter(rid => {
         return rid.designado_cpf === currentUser.user_id;
       });
@@ -1595,7 +1595,7 @@
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                   <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                 </svg>
-                <p style="margin: 0; font-size: 14px;">Nenhuma notificação</p>
+                <p style="margin: 0; font-size: 14px;">Nenhum RID designado para você</p>
               </div>
             `;
           } else {
@@ -1644,7 +1644,7 @@
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                   <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                 </svg>
-                <p style="margin: 0; font-size: 14px;">Nenhuma notificação</p>
+                <p style="margin: 0; font-size: 14px;">Nenhum RID designado para você</p>
               </div>
             `;
           } else {
@@ -2395,7 +2395,7 @@
       });
     }
     
-    // Deletar usu��rio
+    // Deletar usu������rio
     async function deleteUser(userId) {
       const btnConfirm = document.getElementById('btnConfirmDelete');
       btnConfirm.disabled = true;
@@ -3097,5 +3097,5 @@
 
     initApp();
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9a657f149287861f',t:'MTc2NDQ1NDg2OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9a65874860f9861f',t:'MTc2NDQ1NTIwNS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
