@@ -1535,6 +1535,11 @@
           ...doc.data()
         }));
         renderDashboard();
+        
+        // Atualizar notificações para admin
+        if (currentUser) {
+          updateNotifications();
+        }
       }, (error) => {
         console.error('Erro ao carregar RIDs:', error);
       });
@@ -1553,9 +1558,141 @@
           .filter(rid => rid.emitente === currentUser.name);
         
         renderEmployeeRids(employeeRids);
+        
+        // Atualizar notificações para funcionário
+        updateNotifications();
       }, (error) => {
         console.error('Erro ao carregar RIDs:', error);
       });
+    }
+
+    // Atualizar notificações
+    function updateNotifications() {
+      if (!currentUser) return;
+      
+      // Filtrar RIDs designados para o usuário atual
+      const ridsDesignados = allRids.filter(rid => {
+        return rid.designado_cpf === currentUser.user_id;
+      });
+      
+      const isAdmin = adminCPFs.includes(currentUser.user_id);
+      
+      if (isAdmin) {
+        // Atualizar badge de notificações admin
+        const badge = document.getElementById('notificationBadgeAdmin');
+        const notificationList = document.getElementById('notificationListAdmin');
+        
+        if (badge) {
+          badge.textContent = ridsDesignados.length;
+          badge.style.display = ridsDesignados.length > 0 ? 'flex' : 'flex';
+        }
+        
+        if (notificationList) {
+          if (ridsDesignados.length === 0) {
+            notificationList.innerHTML = `
+              <div style="padding: 40px 20px; text-align: center; color: #999;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 12px;">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                <p style="margin: 0; font-size: 14px;">Nenhuma notificação</p>
+              </div>
+            `;
+          } else {
+            notificationList.innerHTML = ridsDesignados.map(rid => {
+              const dataDesignacao = rid.data_designacao ? new Date(rid.data_designacao) : new Date(rid.created_at);
+              const tempoDecorrido = getTempoDecorrido(dataDesignacao);
+              
+              return `
+                <div style="padding: 15px 20px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background 0.3s;" 
+                     onmouseover="this.style.background='#f9f9f9'" 
+                     onmouseout="this.style.background='white'"
+                     onclick="openRidVisualization('${rid.id}'); document.getElementById('dropdownNotificationsAdmin').classList.remove('active');">
+                  <div style="display: flex; align-items: start; gap: 12px;">
+                    <div style="width: 40px; height: 40px; background: #FFF2D6; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFD36B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                      </svg>
+                    </div>
+                    <div style="flex: 1; min-width: 0;">
+                      <div style="font-size: 14px; font-weight: 600; color: #333; margin-bottom: 4px;">RID Designado para Você</div>
+                      <div style="font-size: 13px; color: #666; margin-bottom: 4px;">${rid.incidente || 'Incidente não informado'}</div>
+                      <div style="font-size: 12px; color: #999;">${tempoDecorrido}</div>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('');
+          }
+        }
+      } else {
+        // Atualizar badge de notificações employee
+        const badge = document.getElementById('notificationBadgeEmployee');
+        const notificationList = document.getElementById('notificationListEmployee');
+        
+        if (badge) {
+          badge.textContent = ridsDesignados.length;
+          badge.style.display = ridsDesignados.length > 0 ? 'flex' : 'flex';
+        }
+        
+        if (notificationList) {
+          if (ridsDesignados.length === 0) {
+            notificationList.innerHTML = `
+              <div style="padding: 40px 20px; text-align: center; color: #999;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 12px;">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                <p style="margin: 0; font-size: 14px;">Nenhuma notificação</p>
+              </div>
+            `;
+          } else {
+            notificationList.innerHTML = ridsDesignados.map(rid => {
+              const dataDesignacao = rid.data_designacao ? new Date(rid.data_designacao) : new Date(rid.created_at);
+              const tempoDecorrido = getTempoDecorrido(dataDesignacao);
+              
+              return `
+                <div style="padding: 15px 20px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background 0.3s;" 
+                     onmouseover="this.style.background='#f9f9f9'" 
+                     onmouseout="this.style.background='white'"
+                     onclick="openRidVisualization('${rid.id}'); document.getElementById('dropdownNotificationsEmployee').classList.remove('active');">
+                  <div style="display: flex; align-items: start; gap: 12px;">
+                    <div style="width: 40px; height: 40px; background: #FFF2D6; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFD36B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                      </svg>
+                    </div>
+                    <div style="flex: 1; min-width: 0;">
+                      <div style="font-size: 14px; font-weight: 600; color: #333; margin-bottom: 4px;">RID Designado para Você</div>
+                      <div style="font-size: 13px; color: #666; margin-bottom: 4px;">${rid.incidente || 'Incidente não informado'}</div>
+                      <div style="font-size: 12px; color: #999;">${tempoDecorrido}</div>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('');
+          }
+        }
+      }
+    }
+    
+    // Função auxiliar para calcular tempo decorrido
+    function getTempoDecorrido(data) {
+      const agora = new Date();
+      const diferenca = agora - data;
+      
+      const minutos = Math.floor(diferenca / 60000);
+      const horas = Math.floor(diferenca / 3600000);
+      const dias = Math.floor(diferenca / 86400000);
+      
+      if (minutos < 1) return 'Agora mesmo';
+      if (minutos < 60) return `Há ${minutos} minuto${minutos > 1 ? 's' : ''}`;
+      if (horas < 24) return `Há ${horas} hora${horas > 1 ? 's' : ''}`;
+      if (dias < 7) return `Há ${dias} dia${dias > 1 ? 's' : ''}`;
+      
+      return data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
     }
 
     // Renderizar RIDs do funcionário
@@ -2960,5 +3097,5 @@
 
     initApp();
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9a65779a956b861f',t:'MTc2NDQ1NDU2My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9a657f149287861f',t:'MTc2NDQ1NDg2OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
