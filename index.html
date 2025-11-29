@@ -338,7 +338,7 @@
       position: relative;
     }
 
-    /* Modal de Confirmaç���o */
+    /* Modal de Confirmação */
     .confirm-modal {
       position: fixed;
       top: 0;
@@ -1212,6 +1212,18 @@
      </div><button type="submit" class="btn btn-primary" id="btnSubmitRegister">Cadastrar</button> <button type="button" class="btn btn-secondary" id="btnCancelRegister">Cancelar</button>
     </form>
    </div>
+  </div><!-- Modal de Confirmação de Exclusão -->
+  <div class="confirm-modal" id="confirmModal">
+   <div class="confirm-modal-content">
+    <div class="confirm-modal-icon">
+     <svg viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle> <line x1="15" y1="9" x2="9" y2="15"></line> <line x1="9" y1="9" x2="15" y2="15"></line>
+     </svg>
+    </div>
+    <h3 class="confirm-modal-title">Confirmar Exclusão</h3>
+    <p class="confirm-modal-message" id="confirmModalMessage"></p>
+    <div class="confirm-modal-buttons"><button class="btn-confirm-delete" id="btnConfirmDelete">Sim, deletar</button> <button class="btn-confirm-cancel" id="btnConfirmCancel">Cancelar</button>
+    </div>
+   </div>
   </div><!-- Painel Administrador -->
   <div class="panel-container" id="adminPanel">
    <header class="panel-header">
@@ -1325,7 +1337,11 @@
     </div><!-- RIDs Content -->
     <div id="adminRidsContent" class="hidden">
      <div class="section-header">
-      <h3 class="section-title">Gestão e Emissão de RIDs</h3><span class="section-subtitle">Total: <span id="totalRidsGestao">0</span> RIDs</span>
+      <h3 class="section-title">Gestão e Emissão de RIDs</h3>
+      <div style="display: flex; align-items: center; gap: 15px;"><button class="filter-button" id="btnEmitirRid">
+        <svg viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line> <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg> Emitir Novo RID </button>
+      </div>
      </div>
      <div class="recent-rids-card">
       <div class="empty-state" id="emptyStateRidsGestao">
@@ -1376,6 +1392,11 @@
      </svg> Dashboard </button>
    </nav>
    <div class="panel-content">
+    <div class="section-header">
+     <h3 class="section-title">Painel de Visualização e Emissão</h3><button class="filter-button" id="btnEmitirRidEmployee">
+      <svg viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line> <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg> Emitir Novo RID </button>
+    </div>
     <div class="welcome-message">
      <h2>Painel de Visualização</h2>
      <p>Área para visualização de RIDs</p>
@@ -1920,7 +1941,7 @@
         else if (position === 2) positionClass = 'second';
         else if (position === 3) positionClass = 'third';
         
-        const positionDisplay = position === 1 ? '������' : position === 2 ? '🥈' : position === 3 ? '🥉' : position;
+        const positionDisplay = position === 1 ? '🥇' : position === 2 ? '🥈' : position === 3 ? '🥉' : position;
         
         return `
           <div class="ranking-item">
@@ -1954,16 +1975,13 @@
     function renderRidsGestao() {
       const ridsGestaoList = document.getElementById('ridsGestaoList');
       const emptyState = document.getElementById('emptyStateRidsGestao');
-      const totalRidsGestao = document.getElementById('totalRidsGestao');
       
       if (allRids.length === 0) {
         emptyState.style.display = 'block';
         ridsGestaoList.style.display = 'none';
-        totalRidsGestao.textContent = '0';
       } else {
         emptyState.style.display = 'none';
         ridsGestaoList.style.display = 'block';
-        totalRidsGestao.textContent = allRids.length;
         
         ridsGestaoList.innerHTML = allRids.map(rid => {
           const ridDate = new Date(rid.created_at);
@@ -2136,6 +2154,121 @@
       }
     });
 
+    // Função para abrir modal de emissão de RID
+    function openEmitirRidModal() {
+      const modalHTML = `
+        <div class="modal-overlay active" id="emitirRidModal">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h2 class="modal-title">Emitir Novo RID</h2>
+              <button class="btn-close" id="btnCloseEmitirRid">&times;</button>
+            </div>
+            <div class="success-message" id="emitirRidSuccess" style="display: none;"></div>
+            <div class="error-message" id="emitirRidError" style="display: none;"></div>
+            <form id="emitirRidForm">
+              <div class="form-group">
+                <label class="form-label">Número do RID</label>
+                <input type="text" class="form-input" id="ridNumero" placeholder="Ex: 001/2024" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Setor</label>
+                <select class="form-input" id="ridSetor" required>
+                  <option value="">Selecione o setor</option>
+                  <option value="ADM">ADM</option>
+                  <option value="M. MOVEL">M. MOVEL</option>
+                  <option value="M. FIXA">M. FIXA</option>
+                  <option value="M. ELÉTRICA">M. ELÉTRICA</option>
+                  <option value="PRODUÇÃO">PRODUÇÃO</option>
+                  <option value="MINA">MINA</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Responsável</label>
+                <input type="text" class="form-input" id="ridResponsavel" placeholder="Nome do responsável" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Status</label>
+                <select class="form-input" id="ridStatus" required>
+                  <option value="andamento">Em Andamento</option>
+                  <option value="vencido">Vencido</option>
+                  <option value="corrigido">Corrigido</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-primary">Emitir RID</button>
+              <button type="button" class="btn btn-secondary" id="btnCancelarEmitirRid">Cancelar</button>
+            </form>
+          </div>
+        </div>
+      `;
+      
+      document.body.insertAdjacentHTML('beforeend', modalHTML);
+      
+      // Event listeners do modal
+      document.getElementById('btnCloseEmitirRid').addEventListener('click', () => {
+        document.getElementById('emitirRidModal').remove();
+      });
+      
+      document.getElementById('btnCancelarEmitirRid').addEventListener('click', () => {
+        document.getElementById('emitirRidModal').remove();
+      });
+      
+      document.getElementById('emitirRidModal').addEventListener('click', (e) => {
+        if (e.target.id === 'emitirRidModal') {
+          document.getElementById('emitirRidModal').remove();
+        }
+      });
+      
+      // Submit do formulário
+      document.getElementById('emitirRidForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const numero = document.getElementById('ridNumero').value.trim();
+        const setor = document.getElementById('ridSetor').value;
+        const responsavel = document.getElementById('ridResponsavel').value.trim();
+        const status = document.getElementById('ridStatus').value;
+        
+        const btnSubmit = e.target.querySelector('button[type="submit"]');
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = 'Emitindo...';
+        
+        try {
+          const newRid = {
+            numero: numero,
+            setor: setor,
+            responsavel: responsavel,
+            status: status,
+            emissor: currentUser.name,
+            setor_emissor: currentUser.sector,
+            created_at: new Date().toISOString()
+          };
+          
+          await db.collection('rids').add(newRid);
+          
+          const successDiv = document.getElementById('emitirRidSuccess');
+          successDiv.textContent = '✅ RID emitido com sucesso!';
+          successDiv.style.display = 'block';
+          
+          setTimeout(() => {
+            document.getElementById('emitirRidModal').remove();
+          }, 1500);
+          
+        } catch (error) {
+          console.error('Erro ao emitir RID:', error);
+          const errorDiv = document.getElementById('emitirRidError');
+          errorDiv.textContent = 'Erro ao emitir RID. Tente novamente.';
+          errorDiv.style.display = 'block';
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = 'Emitir RID';
+        }
+      });
+    }
+
+    // Botão Emitir Novo RID (Admin)
+    document.getElementById('btnEmitirRid').addEventListener('click', openEmitirRidModal);
+
+    // Botão Emitir Novo RID (Employee)
+    document.getElementById('btnEmitirRidEmployee').addEventListener('click', openEmitirRidModal);
+
     // Eventos do filtro de ranking
     document.getElementById('btnFilterRanking').addEventListener('click', (e) => {
       e.stopPropagation();
@@ -2266,5 +2399,5 @@
 
     initApp();
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9a651eac31e62d4c',t:'MTc2NDQ1MDkyMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9a652ca482882d4c',t:'MTc2NDQ1MTQ5Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
