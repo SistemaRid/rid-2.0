@@ -1337,7 +1337,7 @@
     </div><!-- RIDs Content -->
     <div id="adminRidsContent" class="hidden">
      <div class="section-header">
-      <h3 class="section-title">Gestão e Emissão de RIDs</h3>
+      <h3 class="section-title">Gestão e Emiss��o de RIDs</h3>
       <div style="display: flex; align-items: center; gap: 15px;"><button class="filter-button" id="btnEmitirRid">
         <svg viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line> <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg> Emitir Novo RID </button>
@@ -1630,7 +1630,7 @@
       document.getElementById('loginForm').reset();
     }
 
-    // Máscara de CPF
+    // M��scara de CPF
     document.getElementById('loginId').addEventListener('input', (e) => {
       let value = e.target.value.replace(/\D/g, '');
       if (value.length <= 11) {
@@ -2375,6 +2375,7 @@
             
             <div style="display: flex; gap: 12px; margin-top: 30px; padding-top: 20px; border-top: 2px solid #f0f0f0;">
               ${isAdmin ? '<button type="button" class="btn btn-primary" id="btnSalvarRid">Salvar Alterações</button>' : ''}
+              ${isAdmin ? '<button type="button" class="btn btn-primary" id="btnDesignarRid" style="background: #64B5F6;">Designar</button>' : ''}
               <button type="button" class="btn btn-secondary" id="btnFecharVisualizarRid">Fechar</button>
             </div>
           </div>
@@ -2419,7 +2420,129 @@
             btnSalvar.textContent = 'Salvar Alterações';
           }
         });
+        
+        // Designar RID
+        document.getElementById('btnDesignarRid').addEventListener('click', async () => {
+          openDesignarRidModal(ridId, rid);
+        });
       }
+    }
+
+    // Função para abrir modal de designação de RID
+    async function openDesignarRidModal(ridId, rid) {
+      // Buscar todos os administradores
+      const admins = allUsers.filter(user => adminCPFs.includes(user.user_id));
+      
+      const modalHTML = `
+        <div class="modal-overlay active" id="designarRidModal">
+          <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+              <h2 class="modal-title">Designar RID</h2>
+              <button class="btn-close" id="btnCloseDesignarRid">&times;</button>
+            </div>
+            
+            <div style="background: #FFF2D6; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+              <div style="font-size: 13px; color: #666; margin-bottom: 8px; font-weight: 600;">RID SELECIONADO</div>
+              <div style="font-size: 16px; font-weight: 700; color: #333; margin-bottom: 4px;">${rid.incidente || 'Incidente não informado'}</div>
+              <div style="font-size: 14px; color: #666;">Emitente: ${rid.emitente || 'Não informado'}</div>
+              <div style="font-size: 14px; color: #666;">Local: ${rid.local || 'Não informado'}</div>
+            </div>
+            
+            <div class="error-message" id="designarRidError" style="display: none;"></div>
+            <div class="success-message" id="designarRidSuccess" style="display: none;"></div>
+            
+            <form id="designarRidForm">
+              <div class="form-group">
+                <label class="form-label">Selecione o Administrador Responsável</label>
+                <select class="form-input" id="selectAdminDesignado" required>
+                  <option value="">Escolha um administrador</option>
+                  ${admins.map(admin => `
+                    <option value="${admin.user_id}">${admin.name} - ${admin.sector}</option>
+                  `).join('')}
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">Observações (opcional)</label>
+                <textarea class="form-input" id="designarObservacoes" placeholder="Adicione observações sobre a designação" rows="3" style="resize: vertical; min-height: 60px;"></textarea>
+              </div>
+              
+              <button type="submit" class="btn btn-primary" style="background: #64B5F6;">Designar RID</button>
+              <button type="button" class="btn btn-secondary" id="btnCancelarDesignar">Cancelar</button>
+            </form>
+          </div>
+        </div>
+      `;
+      
+      document.body.insertAdjacentHTML('beforeend', modalHTML);
+      
+      // Event listeners do modal
+      document.getElementById('btnCloseDesignarRid').addEventListener('click', () => {
+        document.getElementById('designarRidModal').remove();
+      });
+      
+      document.getElementById('btnCancelarDesignar').addEventListener('click', () => {
+        document.getElementById('designarRidModal').remove();
+      });
+      
+      document.getElementById('designarRidModal').addEventListener('click', (e) => {
+        if (e.target.id === 'designarRidModal') {
+          document.getElementById('designarRidModal').remove();
+        }
+      });
+      
+      // Submit do formulário
+      document.getElementById('designarRidForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const adminDesignadoCpf = document.getElementById('selectAdminDesignado').value;
+        const observacoes = document.getElementById('designarObservacoes').value.trim();
+        
+        const adminDesignado = admins.find(admin => admin.user_id === adminDesignadoCpf);
+        
+        if (!adminDesignado) {
+          const errorDiv = document.getElementById('designarRidError');
+          errorDiv.textContent = 'Por favor, selecione um administrador válido.';
+          errorDiv.style.display = 'block';
+          return;
+        }
+        
+        const btnSubmit = e.target.querySelector('button[type="submit"]');
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = 'Designando...';
+        
+        try {
+          await db.collection('rids').doc(ridId).update({
+            designado_para: adminDesignado.name,
+            designado_cpf: adminDesignado.user_id,
+            designado_setor: adminDesignado.sector,
+            observacoes_designacao: observacoes,
+            data_designacao: new Date().toISOString()
+          });
+          
+          const successDiv = document.getElementById('designarRidSuccess');
+          successDiv.textContent = `✅ RID designado para ${adminDesignado.name} com sucesso!`;
+          successDiv.style.display = 'block';
+          
+          setTimeout(() => {
+            document.getElementById('designarRidModal').remove();
+            // Fechar também o modal de visualização
+            const visualizarModal = document.getElementById('visualizarRidModal');
+            if (visualizarModal) {
+              visualizarModal.remove();
+            }
+            showSuccess(`✅ RID designado para ${adminDesignado.name}!`);
+          }, 1500);
+          
+        } catch (error) {
+          console.error('Erro ao designar RID:', error);
+          const errorDiv = document.getElementById('designarRidError');
+          errorDiv.textContent = 'Erro ao designar RID. Tente novamente.';
+          errorDiv.style.display = 'block';
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = 'Designar RID';
+        }
+      });
     }
 
     // Função para abrir modal de emissão de RID
@@ -2443,7 +2566,7 @@
                 <label class="form-label">2. Tipo de contrato</label>
                 <select class="form-input" id="ridTipoContrato" required>
                   <option value="">Selecione o tipo</option>
-                  <option value="Funcionário">Funcion��rio</option>
+                  <option value="Funcionário">Funcion����rio</option>
                   <option value="Terceiro Contratado">Terceiro Contratado</option>
                   <option value="Terceiro Eventual">Terceiro Eventual</option>
                   <option value="Visitante">Visitante</option>
@@ -2761,5 +2884,5 @@
 
     initApp();
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9a6547a530702d4c',t:'MTc2NDQ1MjU5OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9a6560d59394861f',t:'MTc2NDQ1MzYzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
