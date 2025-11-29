@@ -1397,9 +1397,13 @@
       <svg viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line> <line x1="5" y1="12" x2="19" y2="12"></line>
       </svg> Emitir Novo RID </button>
     </div>
-    <div class="welcome-message">
-     <h2>Painel de Visualização</h2>
-     <p>Área para visualização de RIDs</p>
+    <div class="recent-rids-card">
+     <div class="empty-state" id="emptyStateEmployee">
+      <svg width="64" height="64" viewbox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path> <polyline points="14 2 14 8 20 8"></polyline> <line x1="16" y1="13" x2="8" y2="13"></line> <line x1="16" y1="17" x2="8" y2="17"></line>
+      </svg>
+      <p>Você ainda não emitiu nenhum RID</p>
+     </div>
+     <div class="rids-list" id="employeeRidsList"></div>
     </div>
    </div>
   </div>
@@ -1482,6 +1486,81 @@
       }, (error) => {
         console.error('Erro ao carregar RIDs:', error);
       });
+    }
+
+    // Carregar RIDs do funcionário em tempo real
+    function listenToRidsEmployee() {
+      if (!currentUser) return;
+      
+      db.collection('rids').orderBy('created_at', 'desc').onSnapshot((snapshot) => {
+        const employeeRids = snapshot.docs
+          .map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }))
+          .filter(rid => rid.emitente === currentUser.name);
+        
+        renderEmployeeRids(employeeRids);
+      }, (error) => {
+        console.error('Erro ao carregar RIDs:', error);
+      });
+    }
+
+    // Renderizar RIDs do funcionário
+    function renderEmployeeRids(rids) {
+      const employeeRidsList = document.getElementById('employeeRidsList');
+      const emptyState = document.getElementById('emptyStateEmployee');
+      
+      if (rids.length === 0) {
+        emptyState.style.display = 'block';
+        employeeRidsList.style.display = 'none';
+      } else {
+        emptyState.style.display = 'none';
+        employeeRidsList.style.display = 'block';
+        
+        employeeRidsList.innerHTML = rids.map(rid => {
+          const ridDate = new Date(rid.created_at);
+          const formattedDate = ridDate.toLocaleDateString('pt-BR', { 
+            day: '2-digit', 
+            month: '2-digit',
+            year: 'numeric'
+          });
+          
+          let statusClass = '';
+          let statusText = '';
+          
+          if (rid.status === 'CORRIGIDO') {
+            statusClass = 'corrigido';
+            statusText = 'Corrigido';
+          } else if (rid.status === 'VENCIDO') {
+            statusClass = 'vencido';
+            statusText = 'Vencido';
+          }
+          
+          return `
+            <div class="rid-item" style="cursor: pointer;" onclick="openRidVisualization('${rid.id}')">
+              <div class="rid-item-left">
+                <div class="rid-item-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                  </svg>
+                </div>
+                <div class="rid-item-info">
+                  <h4 class="rid-item-title">${rid.incidente || 'Incidente não informado'}</h4>
+                  <p class="rid-item-meta">${rid.setor || 'Setor não informado'} • ${rid.local || 'Local não informado'}</p>
+                </div>
+              </div>
+              <div class="rid-item-right">
+                <span class="rid-status-badge ${statusClass}">${statusText}</span>
+                <span class="rid-item-date">${rid.data || formattedDate}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
     }
 
     async function onConfigChange(config) {
@@ -1611,7 +1690,7 @@
           await loadUsersFromFirebase();
           listenToRids();
         } else {
-          listenToRids();
+          listenToRidsEmployee();
         }
       } catch (error) {
         console.error('Erro ao fazer login:', error);
@@ -1797,9 +1876,9 @@
     // Renderizar Dashboard
     function renderDashboard() {
       const totalRids = allRids.length;
-      const ridsAndamento = allRids.filter(rid => rid.status === 'andamento').length;
-      const ridsVencidos = allRids.filter(rid => rid.status === 'vencido').length;
-      const ridsCorrigidos = allRids.filter(rid => rid.status === 'corrigido').length;
+      const ridsAndamento = 0; // Não usado mais
+      const ridsVencidos = allRids.filter(rid => rid.status === 'VENCIDO').length;
+      const ridsCorrigidos = allRids.filter(rid => rid.status === 'CORRIGIDO').length;
       
       document.getElementById('totalRids').textContent = totalRids;
       document.getElementById('ridsAndamento').textContent = ridsAndamento;
@@ -1842,19 +1921,16 @@
           let statusClass = '';
           let statusText = '';
           
-          if (rid.status === 'andamento') {
-            statusClass = 'andamento';
-            statusText = 'Em Andamento';
-          } else if (rid.status === 'vencido') {
-            statusClass = 'vencido';
-            statusText = 'Vencido';
-          } else if (rid.status === 'corrigido') {
+          if (rid.status === 'CORRIGIDO') {
             statusClass = 'corrigido';
             statusText = 'Corrigido';
+          } else if (rid.status === 'VENCIDO') {
+            statusClass = 'vencido';
+            statusText = 'Vencido';
           }
           
           return `
-            <div class="rid-item">
+            <div class="rid-item" style="cursor: pointer;" onclick="openRidVisualization('${rid.id}')">
               <div class="rid-item-left">
                 <div class="rid-item-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1865,13 +1941,13 @@
                   </svg>
                 </div>
                 <div class="rid-item-info">
-                  <h4 class="rid-item-title">RID #${rid.numero || rid.id.substring(0, 8)}</h4>
-                  <p class="rid-item-meta">${rid.setor || 'Setor não informado'} • ${rid.responsavel || 'Responsável não informado'}</p>
+                  <h4 class="rid-item-title">RID - ${rid.emitente || 'Emitente não informado'}</h4>
+                  <p class="rid-item-meta">${rid.setor || 'Setor não informado'} • ${rid.local || 'Local não informado'}</p>
                 </div>
               </div>
               <div class="rid-item-right">
                 <span class="rid-status-badge ${statusClass}">${statusText}</span>
-                <span class="rid-item-date">${formattedDate}</span>
+                <span class="rid-item-date">${rid.data || formattedDate}</span>
               </div>
             </div>
           `;
@@ -1913,11 +1989,11 @@
       const emissoresCount = {};
       
       monthRids.forEach(rid => {
-        const emissor = rid.emissor || 'Não informado';
+        const emissor = rid.emitente || 'Não informado';
         if (!emissoresCount[emissor]) {
           emissoresCount[emissor] = {
             name: emissor,
-            sector: rid.setor_emissor || 'Setor não informado',
+            sector: rid.setor || 'Setor não informado',
             count: 0
           };
         }
@@ -1994,19 +2070,16 @@
           let statusClass = '';
           let statusText = '';
           
-          if (rid.status === 'andamento') {
-            statusClass = 'andamento';
-            statusText = 'Em Andamento';
-          } else if (rid.status === 'vencido') {
-            statusClass = 'vencido';
-            statusText = 'Vencido';
-          } else if (rid.status === 'corrigido') {
+          if (rid.status === 'CORRIGIDO') {
             statusClass = 'corrigido';
             statusText = 'Corrigido';
+          } else if (rid.status === 'VENCIDO') {
+            statusClass = 'vencido';
+            statusText = 'Vencido';
           }
           
           return `
-            <div class="rid-item">
+            <div class="rid-item" style="cursor: pointer;" onclick="openRidVisualization('${rid.id}')">
               <div class="rid-item-left">
                 <div class="rid-item-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2017,13 +2090,13 @@
                   </svg>
                 </div>
                 <div class="rid-item-info">
-                  <h4 class="rid-item-title">RID #${rid.numero || rid.id.substring(0, 8)}</h4>
-                  <p class="rid-item-meta">${rid.setor || 'Setor não informado'} • ${rid.responsavel || 'Responsável não informado'}</p>
+                  <h4 class="rid-item-title">RID - ${rid.emitente || 'Emitente não informado'}</h4>
+                  <p class="rid-item-meta">${rid.setor || 'Setor não informado'} • ${rid.local || 'Local não informado'}</p>
                 </div>
               </div>
               <div class="rid-item-right">
                 <span class="rid-status-badge ${statusClass}">${statusText}</span>
-                <span class="rid-item-date">${formattedDate}</span>
+                <span class="rid-item-date">${rid.data || formattedDate}</span>
               </div>
             </div>
           `;
@@ -2154,11 +2227,206 @@
       }
     });
 
+    // Função para abrir modal de visualização de RID
+    function openRidVisualization(ridId) {
+      const rid = allRids.find(r => r.id === ridId);
+      
+      if (!rid) {
+        showError('RID não encontrado');
+        return;
+      }
+      
+      const ridDate = new Date(rid.created_at);
+      const formattedDate = ridDate.toLocaleDateString('pt-BR', { 
+        day: '2-digit', 
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      
+      let statusClass = '';
+      let statusBadge = '';
+      
+      if (rid.status === 'CORRIGIDO') {
+        statusClass = 'corrigido';
+        statusBadge = '<span class="rid-status-badge corrigido">CORRIGIDO</span>';
+      } else if (rid.status === 'VENCIDO') {
+        statusClass = 'vencido';
+        statusBadge = '<span class="rid-status-badge vencido">VENCIDO</span>';
+      }
+      
+      // Verificar se é admin
+      const isAdmin = currentUser && adminCPFs.includes(currentUser.user_id);
+      
+      const modalHTML = `
+        <div class="modal-overlay active" id="visualizarRidModal">
+          <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+            
+            <div style="background: linear-gradient(135deg, #FFF2D6 0%, #FFE8B8 100%); padding: 25px; border-radius: 12px; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                <div>
+                  <div style="font-size: 13px; color: #666; margin-bottom: 6px; font-weight: 600;">📅 Emitido em</div>
+                  <div style="font-size: 16px; font-weight: 700; color: #333;">${formattedDate}</div>
+                </div>
+                ${statusBadge}
+              </div>
+            </div>
+            
+            <div style="display: grid; gap: 18px; padding: 0 5px;">
+              <div style="background: #f9f9f9; padding: 20px; border-radius: 10px; border-left: 4px solid #FFD36B;">
+                <div style="font-size: 12px; color: #999; font-weight: 600; margin-bottom: 8px;">EMITENTE</div>
+                <div style="font-size: 16px; font-weight: 600; color: #333;">${rid.emitente || 'Não informado'}</div>
+              </div>
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div style="background: #f9f9f9; padding: 18px; border-radius: 10px;">
+                  <div style="font-size: 12px; color: #999; font-weight: 600; margin-bottom: 8px;">TIPO DE CONTRATO</div>
+                  <div style="font-size: 15px; font-weight: 600; color: #333;">${rid.tipo_contrato || 'Não informado'}</div>
+                </div>
+                
+                <div style="background: #f9f9f9; padding: 18px; border-radius: 10px;">
+                  <div style="font-size: 12px; color: #999; font-weight: 600; margin-bottom: 8px;">UNIDADE</div>
+                  <div style="font-size: 15px; font-weight: 600; color: #333;">${rid.unidade || 'Não informado'}</div>
+                </div>
+              </div>
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div style="background: #f9f9f9; padding: 18px; border-radius: 10px;">
+                  <div style="font-size: 12px; color: #999; font-weight: 600; margin-bottom: 8px;">SETOR DO EMITENTE</div>
+                  <div style="font-size: 15px; font-weight: 600; color: #333;">${rid.setor || 'Não informado'}</div>
+                </div>
+                
+                <div style="background: #f9f9f9; padding: 18px; border-radius: 10px;">
+                  <div style="font-size: 12px; color: #999; font-weight: 600; margin-bottom: 8px;">DATA</div>
+                  <div style="font-size: 15px; font-weight: 600; color: #333;">${rid.data || 'Não informado'}</div>
+                </div>
+              </div>
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div style="background: #f9f9f9; padding: 18px; border-radius: 10px;">
+                  <div style="font-size: 12px; color: #999; font-weight: 600; margin-bottom: 8px;">INCIDENTE OU DESVIOS</div>
+                  <div style="font-size: 15px; font-weight: 600; color: #333;">${rid.incidente || 'Não informado'}</div>
+                </div>
+                
+                <div style="background: #f9f9f9; padding: 18px; border-radius: 10px;">
+                  <div style="font-size: 12px; color: #999; font-weight: 600; margin-bottom: 8px;">ORIGEM DA DETECÇÃO</div>
+                  <div style="font-size: 15px; font-weight: 600; color: #333;">${rid.origem || 'Não informado'}</div>
+                </div>
+              </div>
+              
+              <div style="background: #f9f9f9; padding: 20px; border-radius: 10px; border-left: 4px solid #64B5F6;">
+                <div style="font-size: 12px; color: #999; font-weight: 600; margin-bottom: 8px;">LOCAL DA OCORRÊNCIA</div>
+                <div style="font-size: 15px; font-weight: 600; color: #333;">${rid.local || 'Não informado'}</div>
+              </div>
+              
+              <div style="background: #f9f9f9; padding: 20px; border-radius: 10px; border-left: 4px solid #81C784;">
+                <div style="font-size: 12px; color: #999; font-weight: 600; margin-bottom: 10px;">DESCRIÇÃO DA OCORRÊNCIA</div>
+                <div style="font-size: 14px; line-height: 1.6; color: #333; white-space: pre-wrap;">${rid.descricao || 'Não informado'}</div>
+              </div>
+              
+              <div style="background: #f9f9f9; padding: 20px; border-radius: 10px; border-left: 4px solid #E57373;">
+                <div style="font-size: 12px; color: #999; font-weight: 600; margin-bottom: 10px;">AÇÃO IMEDIATA</div>
+                <div style="font-size: 14px; line-height: 1.6; color: #333; white-space: pre-wrap;">${rid.acao_imediata || 'Não informado'}</div>
+              </div>
+              
+              ${isAdmin ? `
+              <div style="background: #FFF9E6; padding: 25px; border-radius: 12px; border: 2px solid #FFD36B; box-shadow: 0 4px 12px rgba(255, 211, 107, 0.2);">
+                <div style="font-size: 14px; font-weight: 700; color: #333; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFD36B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                  CAMPOS EDITÁVEIS (Administrador)
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 20px;">
+                  <label class="form-label" style="font-size: 13px; font-weight: 700; color: #666; margin-bottom: 10px; display: block;">CLASSIFICAÇÃO DE RISCO</label>
+                  <select class="form-input" id="editClassificacao" style="font-size: 15px; font-weight: 600; border: 2px solid #FFD36B; background: white;">
+                    <option value="Baixo" ${rid.classificacao === 'Baixo' ? 'selected' : ''}>Baixo - Situações com baixo potencial de causar acidente</option>
+                    <option value="Médio" ${rid.classificacao === 'Médio' ? 'selected' : ''}>Médio - Situações que podem causar acidente leve</option>
+                    <option value="Alto" ${rid.classificacao === 'Alto' ? 'selected' : ''}>Alto - Alto potencial de acidente grave ou incapacitante</option>
+                    <option value="Crítico" ${rid.classificacao === 'Crítico' ? 'selected' : ''}>Crítico - Risco iminente de acidente grave ou fatal</option>
+                  </select>
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 13px; font-weight: 700; color: #666; margin-bottom: 10px; display: block;">STATUS</label>
+                  <select class="form-input" id="editStatus" style="font-size: 15px; font-weight: 600; border: 2px solid #FFD36B; background: white;">
+                    <option value="CORRIGIDO" ${rid.status === 'CORRIGIDO' ? 'selected' : ''}>CORRIGIDO - RID já foi resolvido</option>
+                    <option value="VENCIDO" ${rid.status === 'VENCIDO' ? 'selected' : ''}>VENCIDO - RID pendente para encarregado resolver</option>
+                  </select>
+                </div>
+              </div>
+              ` : `
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div style="background: #f9f9f9; padding: 18px; border-radius: 10px;">
+                  <div style="font-size: 12px; color: #999; font-weight: 600; margin-bottom: 8px;">CLASSIFICAÇÃO DE RISCO</div>
+                  <div style="font-size: 15px; font-weight: 600; color: #333;">${rid.classificacao || 'Não informado'}</div>
+                </div>
+                
+                <div style="background: #f9f9f9; padding: 18px; border-radius: 10px;">
+                  <div style="font-size: 12px; color: #999; font-weight: 600; margin-bottom: 8px;">STATUS</div>
+                  <div style="font-size: 15px; font-weight: 600; color: #333;">${rid.status || 'Não informado'}</div>
+                </div>
+              </div>
+              `}
+            </div>
+            
+            <div style="display: flex; gap: 12px; margin-top: 30px; padding-top: 20px; border-top: 2px solid #f0f0f0;">
+              ${isAdmin ? '<button type="button" class="btn btn-primary" id="btnSalvarRid">Salvar Alterações</button>' : ''}
+              <button type="button" class="btn btn-secondary" id="btnFecharVisualizarRid">Fechar</button>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      document.body.insertAdjacentHTML('beforeend', modalHTML);
+      
+      // Event listeners do modal
+      document.getElementById('btnFecharVisualizarRid').addEventListener('click', () => {
+        document.getElementById('visualizarRidModal').remove();
+      });
+      
+      document.getElementById('visualizarRidModal').addEventListener('click', (e) => {
+        if (e.target.id === 'visualizarRidModal') {
+          document.getElementById('visualizarRidModal').remove();
+        }
+      });
+      
+      // Salvar alterações (apenas admin)
+      if (isAdmin) {
+        document.getElementById('btnSalvarRid').addEventListener('click', async () => {
+          const novaClassificacao = document.getElementById('editClassificacao').value;
+          const novoStatus = document.getElementById('editStatus').value;
+          
+          const btnSalvar = document.getElementById('btnSalvarRid');
+          btnSalvar.disabled = true;
+          btnSalvar.textContent = 'Salvando...';
+          
+          try {
+            await db.collection('rids').doc(ridId).update({
+              classificacao: novaClassificacao,
+              status: novoStatus
+            });
+            
+            showSuccess('✅ RID atualizado com sucesso!');
+            document.getElementById('visualizarRidModal').remove();
+          } catch (error) {
+            console.error('Erro ao atualizar RID:', error);
+            showError('Erro ao atualizar RID. Tente novamente.');
+            btnSalvar.disabled = false;
+            btnSalvar.textContent = 'Salvar Alterações';
+          }
+        });
+      }
+    }
+
     // Função para abrir modal de emissão de RID
     function openEmitirRidModal() {
       const modalHTML = `
         <div class="modal-overlay active" id="emitirRidModal">
-          <div class="modal-content">
+          <div class="modal-content" style="max-width: 650px;">
             <div class="modal-header">
               <h2 class="modal-title">Emitir Novo RID</h2>
               <button class="btn-close" id="btnCloseEmitirRid">&times;</button>
@@ -2167,11 +2435,28 @@
             <div class="error-message" id="emitirRidError" style="display: none;"></div>
             <form id="emitirRidForm">
               <div class="form-group">
-                <label class="form-label">Número do RID</label>
-                <input type="text" class="form-input" id="ridNumero" placeholder="Ex: 001/2024" required>
+                <label class="form-label">1. Emitente</label>
+                <input type="text" class="form-input" id="ridEmitente" placeholder="Nome do emitente" required>
               </div>
+              
               <div class="form-group">
-                <label class="form-label">Setor</label>
+                <label class="form-label">2. Tipo de contrato</label>
+                <select class="form-input" id="ridTipoContrato" required>
+                  <option value="">Selecione o tipo</option>
+                  <option value="Funcionário">Funcion��rio</option>
+                  <option value="Terceiro Contratado">Terceiro Contratado</option>
+                  <option value="Terceiro Eventual">Terceiro Eventual</option>
+                  <option value="Visitante">Visitante</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">3. Unidade</label>
+                <input type="text" class="form-input" id="ridUnidade" placeholder="Nome da unidade" required>
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">4. Setor do emitente</label>
                 <select class="form-input" id="ridSetor" required>
                   <option value="">Selecione o setor</option>
                   <option value="ADM">ADM</option>
@@ -2182,18 +2467,71 @@
                   <option value="MINA">MINA</option>
                 </select>
               </div>
+              
               <div class="form-group">
-                <label class="form-label">Responsável</label>
-                <input type="text" class="form-input" id="ridResponsavel" placeholder="Nome do responsável" required>
+                <label class="form-label">5. Data</label>
+                <input type="text" class="form-input" id="ridData" placeholder="dd/MM/yyyy" maxlength="10" required>
               </div>
+              
               <div class="form-group">
-                <label class="form-label">Status</label>
-                <select class="form-input" id="ridStatus" required>
-                  <option value="andamento">Em Andamento</option>
-                  <option value="vencido">Vencido</option>
-                  <option value="corrigido">Corrigido</option>
+                <label class="form-label">6. Incidente ou Desvios</label>
+                <select class="form-input" id="ridIncidente" required>
+                  <option value="">Selecione o tipo</option>
+                  <option value="Condição de Risco">Condição de Risco</option>
+                  <option value="Desvio Comportamental">Desvio Comportamental</option>
+                  <option value="Dano Material">Dano Material</option>
+                  <option value="Quase acidente">Quase acidente</option>
                 </select>
               </div>
+              
+              <div class="form-group">
+                <label class="form-label">7. Origem da detecção</label>
+                <select class="form-input" id="ridOrigem" required>
+                  <option value="">Selecione a origem</option>
+                  <option value="CSL">CSL</option>
+                  <option value="Inspeção programada">Inspeção programada</option>
+                  <option value="Inspeção não programada">Inspeção não programada</option>
+                  <option value="Observação Comportamental">Observação Comportamental</option>
+                  <option value="Constatação espontânea">Constatação espontânea</option>
+                  <option value="Auditoria">Auditoria</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">8. Local da ocorrência</label>
+                <input type="text" class="form-input" id="ridLocal" placeholder="Descreva o local" required>
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">9. Descrição da Ocorrência</label>
+                <textarea class="form-input" id="ridDescricao" placeholder="Descreva detalhadamente a ocorrência" rows="4" required style="resize: vertical; min-height: 80px;"></textarea>
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">10. Classificação de risco</label>
+                <select class="form-input" id="ridClassificacao" required>
+                  <option value="">Selecione a classificação</option>
+                  <option value="Baixo">Baixo - Situações com baixo potencial de causar acidente</option>
+                  <option value="Médio">Médio - Situações que podem causar acidente leve</option>
+                  <option value="Alto">Alto - Alto potencial de acidente grave ou incapacitante</option>
+                  <option value="Crítico">Crítico - Risco iminente de acidente grave ou fatal</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">11. Ação Imediata</label>
+                <textarea class="form-input" id="ridAcaoImediata" placeholder="Descreva a ação imediata tomada" rows="3" required style="resize: vertical; min-height: 60px;"></textarea>
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">12. Status</label>
+                <select class="form-input" id="ridStatus" required>
+                  <option value="">Selecione o status</option>
+                  <option value="CORRIGIDO">CORRIGIDO - RID já foi resolvido</option>
+                  <option value="VENCIDO">VENCIDO - RID pendente para encarregado resolver</option>
+                </select>
+              </div>
+              
               <button type="submit" class="btn btn-primary">Emitir RID</button>
               <button type="button" class="btn btn-secondary" id="btnCancelarEmitirRid">Cancelar</button>
             </form>
@@ -2218,13 +2556,31 @@
         }
       });
       
+      // Máscara de data
+      document.getElementById('ridData').addEventListener('input', (e) => {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length <= 8) {
+          value = value.replace(/(\d{2})(\d)/, '$1/$2');
+          value = value.replace(/(\d{2})(\d)/, '$1/$2');
+          e.target.value = value;
+        }
+      });
+      
       // Submit do formulário
       document.getElementById('emitirRidForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        const numero = document.getElementById('ridNumero').value.trim();
+        const emitente = document.getElementById('ridEmitente').value.trim();
+        const tipoContrato = document.getElementById('ridTipoContrato').value;
+        const unidade = document.getElementById('ridUnidade').value.trim();
         const setor = document.getElementById('ridSetor').value;
-        const responsavel = document.getElementById('ridResponsavel').value.trim();
+        const data = document.getElementById('ridData').value.trim();
+        const incidente = document.getElementById('ridIncidente').value;
+        const origem = document.getElementById('ridOrigem').value;
+        const local = document.getElementById('ridLocal').value.trim();
+        const descricao = document.getElementById('ridDescricao').value.trim();
+        const classificacao = document.getElementById('ridClassificacao').value;
+        const acaoImediata = document.getElementById('ridAcaoImediata').value.trim();
         const status = document.getElementById('ridStatus').value;
         
         const btnSubmit = e.target.querySelector('button[type="submit"]');
@@ -2233,12 +2589,18 @@
         
         try {
           const newRid = {
-            numero: numero,
+            emitente: emitente,
+            tipo_contrato: tipoContrato,
+            unidade: unidade,
             setor: setor,
-            responsavel: responsavel,
+            data: data,
+            incidente: incidente,
+            origem: origem,
+            local: local,
+            descricao: descricao,
+            classificacao: classificacao,
+            acao_imediata: acaoImediata,
             status: status,
-            emissor: currentUser.name,
-            setor_emissor: currentUser.sector,
             created_at: new Date().toISOString()
           };
           
@@ -2399,5 +2761,5 @@
 
     initApp();
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9a652ca482882d4c',t:'MTc2NDQ1MTQ5Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9a6547a530702d4c',t:'MTc2NDQ1MjU5OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
