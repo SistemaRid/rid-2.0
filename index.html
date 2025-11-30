@@ -1375,7 +1375,7 @@
     </div><!-- RIDs Content -->
     <div id="adminRidsContent" class="hidden">
      <div class="section-header">
-      <h3 class="section-title">Gestão e Emiss��o de RIDs</h3>
+      <h3 class="section-title">Gestão e Emissão de RIDs</h3>
       <div style="display: flex; align-items: center; gap: 15px;"><button class="filter-button" id="btnEmitirRid">
         <svg viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line> <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg> Emitir Novo RID </button>
@@ -1496,7 +1496,7 @@
      <div class="empty-state" id="emptyStateEmployee">
       <svg width="64" height="64" viewbox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path> <polyline points="14 2 14 8 20 8"></polyline> <line x1="16" y1="13" x2="8" y2="13"></line> <line x1="16" y1="17" x2="8" y2="17"></line>
       </svg>
-      <p>Voc�� ainda não emitiu nenhum RID</p>
+      <p>Você ainda não emitiu nenhum RID</p>
      </div>
      <div class="rids-list" id="employeeRidsList"></div>
     </div>
@@ -1862,7 +1862,7 @@
       document.getElementById('loginForm').reset();
     }
 
-    // M��scara de CPF
+    // Mascara de CPF
     document.getElementById('loginId').addEventListener('input', (e) => {
       let value = e.target.value.replace(/\D/g, '');
       if (value.length <= 11) {
@@ -2032,7 +2032,7 @@
         btnSubmit.textContent = 'Cadastrar';
         
         closeRegisterModal();
-        showSuccess('✅ Cadastro realizado com sucesso! Fa���a login agora.');
+        showSuccess('✅ Cadastro realizado com sucesso! Faça login agora.');
         
         await loadUsersFromFirebase();
       } catch (error) {
@@ -2064,7 +2064,7 @@
       document.getElementById('dropdownNotificationsEmployee').classList.remove('active');
     });
 
-    // Notifica��ões Admin
+    // Notificações Admin
     document.getElementById('btnNotificationsAdmin').addEventListener('click', (e) => {
       e.stopPropagation();
       const dropdown = document.getElementById('dropdownNotificationsAdmin');
@@ -2294,7 +2294,7 @@
         else if (position === 2) positionClass = 'second';
         else if (position === 3) positionClass = 'third';
         
-        const positionDisplay = position === 1 ? '🥇' : position === 2 ? '��' : position === 3 ? '��' : position;
+        const positionDisplay = position === 1 ? '🥇' : position === 2 ? '🥈' : position === 3 ? '🥉' : position;
         
         return `
           <div class="ranking-item">
@@ -2544,7 +2544,7 @@
       });
     }
     
-    // Deletar usu������rio
+    // Deletar usuario
     async function deleteUser(userId) {
       const btnConfirm = document.getElementById('btnConfirmDelete');
       btnConfirm.disabled = true;
@@ -2672,7 +2672,7 @@
                 </div>
                 
                 <div style="background: #f9f9f9; padding: 18px; border-radius: 10px;">
-                  <div style="font-size: 12px; color: #999; font-weight: 600; margin-bottom: 8px;">ORIGEM DA DETEC��ÃO</div>
+                  <div style="font-size: 12px; color: #999; font-weight: 600; margin-bottom: 8px;">ORIGEM DA DETECÇÃO</div>
                   <div style="font-size: 15px; font-weight: 600; color: #333;">${rid.origem || 'Não informado'}</div>
                 </div>
               </div>
@@ -2683,7 +2683,7 @@
               </div>
               
               <div style="background: #f9f9f9; padding: 20px; border-radius: 10px; border-left: 4px solid #81C784;">
-                <div style="font-size: 12px; color: #999; font-weight: 600; margin-bottom: 10px;">DESCRI��ÃO DA OCORRÊNCIA</div>
+                <div style="font-size: 12px; color: #999; font-weight: 600; margin-bottom: 10px;">DESCRIÇÃO DA OCORRÊNCIA</div>
                 <div style="font-size: 14px; line-height: 1.6; color: #333; white-space: pre-wrap;">${rid.descricao || 'Não informado'}</div>
               </div>
               
@@ -2708,7 +2708,7 @@
                     <option value="Baixo" ${rid.classificacao === 'Baixo' ? 'selected' : ''}>Baixo - Situações com baixo potencial de causar acidente</option>
                     <option value="Médio" ${rid.classificacao === 'Médio' ? 'selected' : ''}>Médio - Situações que podem causar acidente leve</option>
                     <option value="Alto" ${rid.classificacao === 'Alto' ? 'selected' : ''}>Alto - Alto potencial de acidente grave ou incapacitante</option>
-                    <option value="Cr��tico" ${rid.classificacao === 'Crítico' ? 'selected' : ''}>Crítico - Risco iminente de acidente grave ou fatal</option>
+                    <option value="Crítico" ${rid.classificacao === 'Crítico' ? 'selected' : ''}>Crítico - Risco iminente de acidente grave ou fatal</option>
                   </select>
                 </div>
                 
@@ -2888,7 +2888,7 @@
           
           setTimeout(() => {
             document.getElementById('designarRidModal').remove();
-            // Fechar tamb��m o modal de visualização
+            // Fechar também o modal de visualização
             const visualizarModal = document.getElementById('visualizarRidModal');
             if (visualizarModal) {
               visualizarModal.remove();
@@ -2928,7 +2928,7 @@
                 <label class="form-label">2. Tipo de contrato</label>
                 <select class="form-input" id="ridTipoContrato" required>
                   <option value="">Selecione o tipo</option>
-                  <option value="Funcionário">Funcion����rio</option>
+                  <option value="Funcionário">Funcionario</option>
                   <option value="Terceiro Contratado">Terceiro Contratado</option>
                   <option value="Terceiro Eventual">Terceiro Eventual</option>
                   <option value="Visitante">Visitante</option>
@@ -2976,7 +2976,7 @@
                   <option value="CSL">CSL</option>
                   <option value="Inspeção programada">Inspeção programada</option>
                   <option value="Inspeção não programada">Inspeção não programada</option>
-                  <option value="Observaç��o Comportamental">Observação Comportamental</option>
+                  <option value="Observação Comportamental">Observação Comportamental</option>
                   <option value="Constatação espontânea">Constatação espontânea</option>
                   <option value="Auditoria">Auditoria</option>
                 </select>
