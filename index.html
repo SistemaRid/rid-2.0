@@ -2793,7 +2793,7 @@
     // Função para abrir modal de designação de RID
     async function openDesignarRidModal(ridId, rid) {
       // Buscar todos os administradores
-      const admins = allUsers.filter(user => adminCPFs.includes(user.user_id));
+      const admins = allUsers.filter(user => user.user_type === "admin");
       
       const modalHTML = `
         <div class="modal-overlay active" id="designarRidModal">
