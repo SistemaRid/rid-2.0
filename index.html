@@ -1618,7 +1618,7 @@
         return rid.designado_cpf === currentUser.user_id;
       });
       
-      const isAdmin = adminCPFs.includes(currentUser.user_id);
+      const isAdmin = currentUser.user_type === "admin";
       
       if (isAdmin) {
         // Atualizar badge de notificações admin
