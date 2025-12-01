@@ -2013,13 +2013,18 @@
           return;
         }
 
-        const newUser = {
-          user_id: cpf,
-          name: name,
-          user_type: 'employee',
-          sector: sector,
-          password: password,
-          created_at: new Date().toISOString()
+        // Verifica se o CPF está na lista de administradores
+const tipoUsuario = adminCPFs.includes(cpf) ? 'admin' : 'employee';
+
+const newUser = {
+  user_id: cpf,
+  name: name,
+  user_type: tipoUsuario, // <-- AGORA FUNCIONA
+  sector: sector,
+  password: password,
+  created_at: new Date().toISOString()
+};
+
         };
 
         await db.collection('users').add(newUser);
